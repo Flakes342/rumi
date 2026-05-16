@@ -3,11 +3,13 @@
  * Skin profile summary, priorities, settings, saved products.
  */
 import React from 'react';
+import { Alert } from 'react-native';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/Theme';
 import { useRumiStore } from '@/store/useRumiStore';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
   const { onboardingAnswers, savedProducts, streak } = useRumiStore();
@@ -30,8 +32,8 @@ export default function ProfileScreen() {
 
         {/* Stats */}
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={s.statsRow}>
-          <View style={s.statCard}><Text style={s.statVal}>🔥 {streak}</Text><Text style={s.statLbl}>Day Streak</Text></View>
-          <View style={s.statCard}><Text style={s.statVal}>♥ {savedProducts.length}</Text><Text style={s.statLbl}>Saved</Text></View>
+          <View style={s.statCard}><Text style={s.statVal}>{streak}</Text><Text style={s.statLbl}>Day Streak</Text></View>
+          <View style={s.statCard}><Text style={s.statVal}>{savedProducts.length}</Text><Text style={s.statLbl}>Saved</Text></View>
           <View style={s.statCard}><Text style={s.statVal}>62%</Text><Text style={s.statLbl}>Barrier</Text></View>
         </Animated.View>
 
@@ -45,25 +47,29 @@ export default function ProfileScreen() {
               ))}
             </View>
             <View style={s.insightList}>
-              <Text style={s.insight}>🌸 Barrier slightly compromised</Text>
-              <Text style={s.insight}>⚡ High irritation risk</Text>
-              <Text style={s.insight}>🌙 Hormonal breakout tendency</Text>
-              <Text style={s.insight}>☀️ UV-sensitive skin</Text>
+              <Text style={s.insight}>Barrier slightly compromised</Text>
+              <Text style={s.insight}>High irritation risk</Text>
+              <Text style={s.insight}>Hormonal breakout tendency</Text>
+              <Text style={s.insight}>UV sensitive skin</Text>
             </View>
           </LinearGradient>
         </Animated.View>
 
         {/* Menu Items */}
         <Animated.View entering={FadeInDown.delay(400).duration(500)} style={s.menu}>
-          {['My Skin Journey', 'Saved Products', 'My Shelf', 'Notification Settings', 'Edit Profile', 'About Rumi'].map((item, i) => (
-            <Pressable key={item} style={({ pressed }) => [s.menuItem, pressed && { opacity: 0.7 }]}>
+          {['My Skin Journey', 'Saved Products', 'My Shelf', 'Notification Settings', 'Edit Profile', 'About Rumi'].map((item) => (
+            <Pressable key={item} style={({ pressed }) => [s.menuItem, pressed && { opacity: 0.7 }]} onPress={() => {
+              if (item === 'Saved Products') router.push('/(tabs)/discover');
+              else if (item === 'My Skin Journey') router.push('/reveal');
+              else Alert.alert(item, 'This section is being connected to backend data.');
+            }}>
               <Text style={s.menuText}>{item}</Text>
               <Text style={s.menuArrow}>›</Text>
             </Pressable>
           ))}
         </Animated.View>
 
-        <Text style={s.version}>Rumi v1.0.0 · Made with 🤍</Text>
+        <Text style={s.version}>Rumi v1.0.0</Text>
       </ScrollView>
     </View>
   );

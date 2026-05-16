@@ -40,10 +40,10 @@ const QUICK_PROMPTS = [
 ];
 
 const DUMMY_REPLIES: Record<string, string> = {
-  default: "I'd love to help with that! Based on your sensitive combination skin profile, here's what I think...\n\nYour skin barrier is slightly compromised right now, so I'd suggest focusing on gentle, hydrating products. Avoid harsh actives for the next week or so. 💛",
-  'Why is my skin dry today?': "Great question! 💧 Delhi's humidity is at 42% today — that's quite low for your skin type.\n\nYour combination skin loses moisture faster in dry air. I'd suggest:\n• Double up on hyaluronic acid serum\n• Use a heavier moisturizer today\n• Mist throughout the day\n\nYour barrier health is at 62%, so extra hydration will help repair it too! 🌸",
-  'Can I use niacinamide with retinol?': "Yes, you can! But with your sensitive skin, I'd recommend using them at different times. 🌙\n\n• Niacinamide → Morning routine\n• Retinol → Evening routine\n\nThis way your skin gets both benefits without irritation. Start with retinol 2-3 nights/week and build up slowly.\n\nYour irritation risk is 74%, so going slow is key! 💛",
-  'Suggest a routine under ₹1500': "Absolutely! Here's a complete routine within budget: 💚\n\n☀️ Morning:\n1. Cetaphil Gentle Cleanser — ₹290\n2. Minimalist Niacinamide 10% — ₹599\n3. Neutrogena Oil-Free Moisturizer — ₹350\n4. UV Doux Sunscreen — ₹390\n\nTotal: ~₹1,629 (close!)\n\nAll products are fragrance-free and safe for your sensitive barrier. 🌸",
+  default: "I'd love to help with that! Based on your sensitive combination skin profile, here's what I think...\n\nYour skin barrier is slightly compromised right now, so I'd suggest focusing on gentle, hydrating products. Avoid harsh actives for the next week or so.",
+  'Why is my skin dry today?': "Great question! Delhi's humidity is at 42% today — that's quite low for your skin type.\n\nYour combination skin loses moisture faster in dry air. I'd suggest:\n• Double up on hyaluronic acid serum\n• Use a heavier moisturizer today\n• Mist throughout the day\n\nYour barrier health is at 62%, so extra hydration will help repair it too! ",
+  'Can I use niacinamide with retinol?': "Yes, you can! But with your sensitive skin, I'd recommend using them at different times. 🌙\n\n• Niacinamide → Morning routine\n• Retinol → Evening routine\n\nThis way your skin gets both benefits without irritation. Start with retinol 2-3 nights/week and build up slowly.\n\nYour irritation risk is 74%, so going slow is key!",
+  'Suggest a routine under ₹1500': "Absolutely! Here's a complete routine within budget: \n\n Morning:\n1. Cetaphil Gentle Cleanser — ₹290\n2. Minimalist Niacinamide 10% — ₹599\n3. Neutrogena Oil-Free Moisturizer — ₹350\n4. UV Doux Sunscreen — ₹390\n\nTotal: ~₹1,629 (close!)\n\nAll products are fragrance-free and safe for your sensitive barrier. ",
 };
 
 export default function AgentScreen() {
@@ -51,7 +51,7 @@ export default function AgentScreen() {
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const hour = new Date().getHours();
-  const mood = hour < 12 ? 'Good morning! ☀️' : hour < 18 ? 'Hey there! 🌸' : 'Evening vibes 🌙';
+  const mood = hour < 12 ? 'Good morning' : hour < 18 ? 'Hey there' : 'Evening vibes';
 
   const sendMessage = (text: string) => {
     const msg = text.trim();
@@ -81,7 +81,7 @@ export default function AgentScreen() {
         {/* Empty state */}
         {agentMessages.length === 0 && (
           <Animated.View entering={FadeInDown.delay(300).duration(500)} style={st.emptyState}>
-            <Text style={st.emptyTitle}>Ask me anything about skincare</Text>
+            <Text style={st.emptyTitle}>Ask anything about skincare</Text>
             <View style={st.promptsGrid}>
               {QUICK_PROMPTS.map((p, i) => (
                 <Animated.View key={p} entering={FadeInDown.delay(400 + i * 80).duration(400)}>
