@@ -48,12 +48,14 @@ export default function HomeScreen() {
         {/* For You Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>For you</Text>
-          <Text style={styles.viewMore}>View more ></Text>
+          <Pressable onPress={() => router.push('/(tabs)/discover')}>
+            <Text style={styles.viewMore}>View more</Text>
+          </Pressable>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.forYouList}>
           {/* Main Video Card */}
-          <View style={styles.videoCard}>
+          <Pressable style={styles.videoCard} onPress={() => router.push('/(tabs)/discover')}>
             <Image 
               source={require('../../assets/images/scan_face_1778924204369.png')} 
               style={styles.videoImage}
@@ -70,7 +72,7 @@ export default function HomeScreen() {
                 <Text style={styles.videoTitle}>5 advices for{"\n"}your skincare{"\n"}routine</Text>
               </View>
             </View>
-          </View>
+          </Pressable>
 
           {/* Secondary Card (Decorative) */}
           <View style={[styles.videoCard, { width: width * 0.4, opacity: 0.5 }]}>

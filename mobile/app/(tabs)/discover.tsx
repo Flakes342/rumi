@@ -9,6 +9,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/Theme';
 import { useRumiStore, DUMMY_PRODUCTS, DISCOVERY_CARDS } from '@/store/useRumiStore';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -19,7 +20,7 @@ function ProductCard({ product, index }: { product: any; index: number }) {
 
   return (
     <Animated.View entering={FadeInDown.delay(200 + index * 100).duration(500)}>
-      <Pressable style={({ pressed }) => [pStyles.card, pressed && { opacity: 0.95 }]}>
+      <Pressable style={({ pressed }) => [pStyles.card, pressed && { opacity: 0.95 }]} onPress={() => router.push('/routine')}>
         <LinearGradient colors={[Colors.cloud, Colors.blush]} style={pStyles.imgBox}>
           <Text style={{ fontSize: 48, opacity: 0.6 }}>{emoji}</Text>
           <Pressable style={pStyles.saveBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleSavedProduct(product.id); }}>
@@ -85,12 +86,12 @@ export default function DiscoverScreen() {
           ))}
         </View>
 
-        <View style={s.callout}><Text style={s.calloutText}>✨ Because your skin is sensitive and dehydrated...</Text></View>
+        <View style={s.callout}><Text style={s.calloutText}>Because your skin is sensitive and dehydrated</Text></View>
 
         <Text style={s.secTitle}>Explore</Text>
         {DISCOVERY_CARDS.slice(0, 4).map((card, i) => (
           <Animated.View key={card.id} entering={FadeInDown.delay(100 + i * 100).duration(500)}>
-            <Pressable style={[s.editCard, { backgroundColor: card.color }]}>
+            <Pressable style={[s.editCard, { backgroundColor: card.color }]} onPress={() => router.push('/routine')}>
               <Text style={{ fontSize: 36 }}>{card.emoji}</Text>
               <View style={{ flex: 1 }}><Text style={s.editTitle}>{card.title}</Text><Text style={s.editSub}>{card.subtitle}</Text></View>
             </Pressable>

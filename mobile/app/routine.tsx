@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows } from '@/constants/Theme';
 import { router } from 'expo-router';
 
 export default function RoutineScreen() {
+  const [selectedDay, setSelectedDay] = useState('Tue');
+  const [completed, setCompleted] = useState<Record<string, boolean>>({ step1: true, step2: true, step3: false });
+  const days = useMemo(() => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], []);
+  const toggle = (key: string) => setCompleted((prev) => ({ ...prev, [key]: !prev[key] }));
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -20,14 +25,14 @@ export default function RoutineScreen() {
 
       {/* Calendar Strip */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.calendarStrip}>
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, index) => {
-          const isSelected = day === 'Tue'; // mock selected state
+        {days.map((day, index) => {
+          const isSelected = day === selectedDay;
           const date = index + 5;
           return (
-            <View key={day} style={[styles.dayItem, isSelected && styles.dayItemSelected]}>
+            <Pressable key={day} onPress={() => setSelectedDay(day)} style={[styles.dayItem, isSelected && styles.dayItemSelected]}>
               <Text style={[styles.dayDate, isSelected && styles.dayDateSelected]}>{date}</Text>
               <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>{day}</Text>
-            </View>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -42,9 +47,9 @@ export default function RoutineScreen() {
               source={require('../assets/images/product_serum_1778924224889.png')} 
               style={styles.productImage} 
             />
-            <View style={styles.checkCircle}>
-              <Ionicons name="checkmark" size={14} color={Colors.charcoal} />
-            </View>
+            <Pressable style={styles.checkCircle} onPress={() => toggle('step2')}>
+              {completed.step2 && <Ionicons name="checkmark" size={14} color={Colors.charcoal} />}
+            </Pressable>
           </View>
           <View style={styles.productInfo}>
             <Text style={styles.productName}>Mineral UV{"\n"}Filters SPF</Text>
@@ -59,9 +64,9 @@ export default function RoutineScreen() {
               source={require('../assets/images/product_cream_1778924244807.png')} 
               style={styles.productImage} 
             />
-            <View style={styles.checkCircle}>
-              <Ionicons name="checkmark" size={14} color={Colors.charcoal} />
-            </View>
+            <Pressable style={styles.checkCircle} onPress={() => toggle('step1')}>
+              {completed.step1 && <Ionicons name="checkmark" size={14} color={Colors.charcoal} />}
+            </Pressable>
           </View>
           <View style={[styles.productInfo, { alignItems: 'flex-start' }]}>
             <Text style={styles.productName}>100% Organic{"\n"}Fruit Oil</Text>
@@ -76,7 +81,9 @@ export default function RoutineScreen() {
               source={require('../assets/images/product_cleanser_1778924269802.png')} 
               style={styles.productImage} 
             />
-            <View style={[styles.checkCircle, styles.checkCircleEmpty]} />
+            <Pressable style={[styles.checkCircle, !completed.step3 && styles.checkCircleEmpty]} onPress={() => toggle('step3')}>
+              {completed.step3 && <Ionicons name="checkmark" size={14} color={Colors.charcoal} />}
+            </Pressable>
           </View>
           <View style={styles.productInfo}>
             <Text style={styles.productName}>Niacinamide{"\n"}10% + Zinc 1%</Text>
