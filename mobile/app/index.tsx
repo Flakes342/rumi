@@ -1,279 +1,174 @@
-/**
- * Rumi — Welcome / Splash Screen
- *
- * Minimal. Soft animation. Floating gradients.
- * "Rumi — Your skin, understood."
- * Continue with Google / Continue with Apple
- */
-import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Dimensions,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-  withRepeat,
-  withSequence,
-  Easing,
-  interpolate,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Colors, Spacing, BorderRadius, Typography } from '@/constants/Theme';
+import { Card, CircleIcon, Icon, PrimaryButton, ScreenContainer } from '@/components/RumiUI';
+import { Colors, Radius, Shadows, Spacing, Typography } from '@/constants/Theme';
 import { useRumiStore } from '@/store/useRumiStore';
 
-const { width, height } = Dimensions.get('window');
-
-// Animated floating orb component
-function FloatingOrb({
-  size,
-  color,
-  initialX,
-  initialY,
-  delay,
-}: {
-  size: number;
-  color: string;
-  initialX: number;
-  initialY: number;
-  delay: number;
-}) {
-  const translateY = useSharedValue(0);
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.8);
+export default function LoginScreen() {
+  const { isAuthenticated, hasCompletedOnboarding, setAuthenticated } = useRumiStore();
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 1500 }));
-    scale.value = withDelay(delay, withTiming(1, { duration: 1500 }));
-    translateY.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(20, { duration: 3000, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      )
-    );
-  }, []);
+    if (isAuthenticated && hasCompletedOnboarding) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, hasCompletedOnboarding]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: 'absolute',
-          left: initialX,
-          top: initialY,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-        },
-        animatedStyle,
-      ]}
-    />
-  );
-}
-
-export default function WelcomeScreen() {
-  const { setAuthenticated } = useRumiStore();
-
-  // Animation values
-  const logoOpacity = useSharedValue(0);
-  const logoTranslateY = useSharedValue(30);
-  const taglineOpacity = useSharedValue(0);
-  const taglineTranslateY = useSharedValue(20);
-  const buttonsOpacity = useSharedValue(0);
-  const buttonsTranslateY = useSharedValue(30);
-
-  useEffect(() => {
-    // Staggered entrance animation
-    logoOpacity.value = withDelay(400, withTiming(1, { duration: 1000 }));
-    logoTranslateY.value = withDelay(
-      400,
-      withTiming(0, { duration: 1000, easing: Easing.out(Easing.exp) })
-    );
-
-    taglineOpacity.value = withDelay(900, withTiming(1, { duration: 800 }));
-    taglineTranslateY.value = withDelay(
-      900,
-      withTiming(0, { duration: 800, easing: Easing.out(Easing.exp) })
-    );
-
-    buttonsOpacity.value = withDelay(1400, withTiming(1, { duration: 800 }));
-    buttonsTranslateY.value = withDelay(
-      1400,
-      withTiming(0, { duration: 800, easing: Easing.out(Easing.exp) })
-    );
-  }, []);
-
-  const logoStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
-    transform: [{ translateY: logoTranslateY.value }],
-  }));
-
-  const taglineStyle = useAnimatedStyle(() => ({
-    opacity: taglineOpacity.value,
-    transform: [{ translateY: taglineTranslateY.value }],
-  }));
-
-  const buttonsStyle = useAnimatedStyle(() => ({
-    opacity: buttonsOpacity.value,
-    transform: [{ translateY: buttonsTranslateY.value }],
-  }));
-
-  const handleContinue = () => {
-    setAuthenticated(true);
-    router.push('/onboarding');
+  const continueFlow = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setAuthenticated(true);
+      setLoading(false);
+      router.replace(hasCompletedOnboarding ? '/(tabs)' : '/onboarding');
+    }, 500);
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#FFF8F0', '#F5E6DA', '#E8D8CC', '#F5E6DA', '#FFF8F0']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+    <ScreenContainer padded={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={styles.botanical} />
+          <View style={styles.sideGlow} />
 
-      {/* Floating orbs for depth */}
-      <FloatingOrb size={180} color="rgba(232,196,184,0.15)" initialX={-40} initialY={height * 0.15} delay={0} />
-      <FloatingOrb size={120} color="rgba(201,169,184,0.12)" initialX={width * 0.65} initialY={height * 0.1} delay={300} />
-      <FloatingOrb size={200} color="rgba(184,201,184,0.1)" initialX={width * 0.3} initialY={height * 0.55} delay={600} />
-      <FloatingOrb size={100} color="rgba(232,196,184,0.12)" initialX={width * 0.7} initialY={height * 0.65} delay={900} />
-      <FloatingOrb size={140} color="rgba(245,230,218,0.2)" initialX={-20} initialY={height * 0.7} delay={400} />
-
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Logo area */}
-        <View style={styles.logoSection}>
-          <Animated.View style={logoStyle}>
-            <Text style={styles.logoText}>Rumi</Text>
+          <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.hero}>
+            <Image source={require('../assets/images/rumi-logo-clean.png')} style={styles.logo} resizeMode="contain" />
+            <Text style={styles.tagline}>Personalized skin care, powered by intelligence.</Text>
+            <View style={styles.rule}>
+              <View style={styles.ruleLine} />
+              <Icon name="sparkle" size={16} color={Colors.pink} />
+              <View style={styles.ruleLine} />
+            </View>
           </Animated.View>
 
-          <Animated.View style={taglineStyle}>
-            <Text style={styles.tagline}>Your skin, understood.</Text>
+          <Animated.View entering={FadeInDown.delay(180).duration(500)} style={styles.features}>
+            {[
+              ['sparkle', 'AI powered recommendations'],
+              ['shield', 'Ingredient transparency'],
+              ['chart', 'Track and improve your skin'],
+            ].map(([icon, label]) => (
+              <View key={label} style={styles.feature}>
+                <CircleIcon name={icon as any} size={40} tone={Colors.shell} />
+                <Text style={styles.featureText}>{label}</Text>
+              </View>
+            ))}
           </Animated.View>
-        </View>
 
-        {/* Auth buttons */}
-        <Animated.View style={[styles.buttonSection, buttonsStyle]}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.authButton,
-              styles.googleButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleContinue}
-          >
-            <Text style={styles.authButtonIcon}>G</Text>
-            <Text style={styles.authButtonText}>Continue with Google</Text>
-          </Pressable>
+          <Animated.View entering={FadeInDown.delay(260).duration(500)} style={styles.authStack}>
+            <Pressable onPress={continueFlow} style={({ pressed }) => [styles.authButton, pressed && styles.pressed]}>
+              <Text style={styles.google}>G</Text>
+              <Text style={styles.authText}>{loading ? 'Preparing your profile' : 'Continue with Google'}</Text>
+            </Pressable>
+            <Pressable onPress={continueFlow} style={({ pressed }) => [styles.authButton, styles.appleButton, pressed && styles.pressed]}>
+              <Text style={styles.appleMark}>Apple</Text>
+              <Text style={[styles.authText, styles.appleText]}>Continue with Apple</Text>
+            </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.authButton,
-              styles.appleButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleContinue}
-          >
-            <Text style={[styles.authButtonIcon, { color: '#FFF8F0' }]}>⌘</Text>
-            <Text style={[styles.authButtonText, { color: '#FFF8F0' }]}>
-              Continue with Apple
-            </Text>
-          </Pressable>
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <Text style={styles.orText}>OR</Text>
+              <View style={styles.orLine} />
+            </View>
 
-          <Text style={styles.termsText}>
-            By continuing, you agree to our Terms & Privacy Policy
-          </Text>
-        </Animated.View>
-      </View>
-    </View>
+            {!emailOpen ? (
+              <PrimaryButton label="Continue with Email" icon="edit" light onPress={() => setEmailOpen(true)} />
+            ) : (
+              <Card style={styles.emailCard}>
+                <TextInput value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={Colors.muted} autoCapitalize="none" keyboardType="email-address" style={styles.input} />
+                <TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor={Colors.muted} secureTextEntry style={styles.input} />
+                <PrimaryButton label="Continue" onPress={continueFlow} disabled={!email || !password} />
+              </Card>
+            )}
+          </Animated.View>
+
+          <Text style={styles.join}>Join thousands on their skin journey</Text>
+          <Text style={styles.terms}>By continuing, you agree to our Terms of Service and Privacy Policy</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.cream,
+  flex: { flex: 1 },
+  scroll: {
+    minHeight: '100%',
+    paddingTop: 46,
+    paddingBottom: Spacing.x5,
+    paddingHorizontal: Spacing.x5,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: height * 0.3,
-    paddingBottom: Spacing['3xl'],
+  botanical: {
+    position: 'absolute',
+    left: -52,
+    top: 132,
+    width: 86,
+    height: 240,
+    borderRadius: 80,
+    backgroundColor: '#E8DDD4',
+    opacity: 0.34,
   },
-  logoSection: {
-    alignItems: 'center',
+  sideGlow: {
+    position: 'absolute',
+    right: -116,
+    top: 64,
+    width: 190,
+    height: 330,
+    borderRadius: 160,
+    backgroundColor: '#F2D9CF',
+    opacity: 0.45,
   },
-  logoText: {
-    fontSize: Typography.sizes.hero,
-    fontWeight: Typography.weights.semibold,
-    color: Colors.charcoal,
-    letterSpacing: -1,
-  },
+  hero: { alignItems: 'center', marginTop: Spacing.x5 },
+  logo: { width: 220, height: 150 },
   tagline: {
-    fontSize: Typography.sizes.md,
-    fontWeight: Typography.weights.light,
-    color: Colors.warmGray,
-    marginTop: Spacing.sm,
-    letterSpacing: 0.5,
+    marginTop: Spacing.x2,
+    maxWidth: 286,
+    textAlign: 'center',
+    fontFamily: Typography.serif,
+    fontSize: 25,
+    lineHeight: 34,
+    color: Colors.text,
   },
-  buttonSection: {
-    gap: Spacing.sm,
-  },
+  rule: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x3, marginTop: Spacing.x4 },
+  ruleLine: { width: 56, height: 1, backgroundColor: Colors.line },
+  features: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.x6 },
+  feature: { width: '31%', alignItems: 'center', gap: Spacing.x2 },
+  featureText: { fontFamily: Typography.sans, textAlign: 'center', fontSize: 11, lineHeight: 15, color: Colors.text },
+  authStack: { marginTop: Spacing.x8, gap: Spacing.x3 },
   authButton: {
-    flexDirection: 'row',
+    height: 54,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.card,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.pill,
-    gap: Spacing.sm,
+    flexDirection: 'row',
+    gap: Spacing.x3,
+    ...Shadows.soft,
   },
-  googleButton: {
-    backgroundColor: Colors.cardBg,
+  appleButton: { backgroundColor: Colors.black },
+  pressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
+  google: { fontSize: 21, fontWeight: '800', color: '#4285F4' },
+  appleMark: { color: Colors.white, fontWeight: '800', fontSize: 12 },
+  authText: { fontFamily: Typography.sans, fontSize: 16, color: Colors.text, fontWeight: '700' },
+  appleText: { color: Colors.white },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x4, marginVertical: Spacing.x2 },
+  orLine: { flex: 1, height: 1, backgroundColor: Colors.line },
+  orText: { fontFamily: Typography.sans, color: Colors.muted, fontWeight: '700' },
+  emailCard: { padding: Spacing.x4, gap: Spacing.x3, borderRadius: Radius.large },
+  input: {
+    height: 52,
+    borderRadius: Radius.medium,
+    backgroundColor: '#FBF7F4',
     borderWidth: 1,
-    borderColor: Colors.cloud,
+    borderColor: Colors.line,
+    paddingHorizontal: Spacing.x4,
+    fontFamily: Typography.sans,
+    color: Colors.text,
   },
-  appleButton: {
-    backgroundColor: Colors.charcoal,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
-  authButtonIcon: {
-    fontSize: Typography.sizes.lg,
-    fontWeight: Typography.weights.bold,
-    color: Colors.charcoal,
-  },
-  authButtonText: {
-    fontSize: Typography.sizes.base,
-    fontWeight: Typography.weights.medium,
-    color: Colors.charcoal,
-  },
-  termsText: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.softGray,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-  },
+  join: { marginTop: Spacing.x6, textAlign: 'center', fontFamily: Typography.sans, fontSize: 13, color: '#C77F72', fontWeight: '600' },
+  terms: { marginTop: Spacing.x4, textAlign: 'center', fontFamily: Typography.sans, fontSize: 10, lineHeight: 15, color: Colors.muted },
 });

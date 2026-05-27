@@ -1,140 +1,170 @@
-/**
- * Rumi — AI Agent Chat
- * "Smart skincare bestie" — NOT ChatGPT.
- * Floating orb, emotional states, conversational UI.
- */
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing } from 'react-native-reanimated';
-import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/Theme';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { Card, CircleIcon, Icon, Orb, ScreenContainer, haptic } from '@/components/RumiUI';
+import { Colors, Radius, Shadows, Spacing, Typography } from '@/constants/Theme';
 import { useRumiStore } from '@/store/useRumiStore';
-import { useEffect } from 'react';
 
-function PulsingOrb() {
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    scale.value = withRepeat(withSequence(
-      withTiming(1.08, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) })
-    ), -1, true);
-  }, []);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  return (
-    <Animated.View style={[orbS.wrap, style]}>
-      <LinearGradient colors={['#E8C4B8', '#C9A9B8', '#B8C9B8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={orbS.gradient} />
-    </Animated.View>
-  );
-}
-
-const orbS = StyleSheet.create({
-  wrap: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden', alignSelf: 'center', marginBottom: 8 },
-  gradient: { width: '100%', height: '100%' },
-});
-
-const QUICK_PROMPTS = [
-  'Why is my skin dry today?',
-  'Can I use niacinamide with retinol?',
-  'Suggest a routine under ₹1500',
-  'Is this safe during periods?',
+const prompts = [
+  ['Why is my skin dry today?', 'Understand what your skin needs', 'drop'],
+  ['Can I use niacinamide with retinol?', 'Check ingredient compatibility', 'lab'],
+  ['Suggest a routine under Rs 1500', 'Get budget friendly routine picks', 'wallet'],
+  ['Is this safe during periods?', 'Learn what works and what does not', 'calendar'],
 ];
 
-const DUMMY_REPLIES: Record<string, string> = {
-  default: "I'd love to help with that! Based on your sensitive combination skin profile, here's what I think...\n\nYour skin barrier is slightly compromised right now, so I'd suggest focusing on gentle, hydrating products. Avoid harsh actives for the next week or so.",
-  'Why is my skin dry today?': "Great question! Delhi's humidity is at 42% today — that's quite low for your skin type.\n\nYour combination skin loses moisture faster in dry air. I'd suggest:\n• Double up on hyaluronic acid serum\n• Use a heavier moisturizer today\n• Mist throughout the day\n\nYour barrier health is at 62%, so extra hydration will help repair it too! ",
-  'Can I use niacinamide with retinol?': "Yes, you can! But with your sensitive skin, I'd recommend using them at different times. 🌙\n\n• Niacinamide → Morning routine\n• Retinol → Evening routine\n\nThis way your skin gets both benefits without irritation. Start with retinol 2-3 nights/week and build up slowly.\n\nYour irritation risk is 74%, so going slow is key!",
-  'Suggest a routine under ₹1500': "Absolutely! Here's a complete routine within budget: \n\n Morning:\n1. Cetaphil Gentle Cleanser — ₹290\n2. Minimalist Niacinamide 10% — ₹599\n3. Neutrogena Oil-Free Moisturizer — ₹350\n4. UV Doux Sunscreen — ₹390\n\nTotal: ~₹1,629 (close!)\n\nAll products are fragrance-free and safe for your sensitive barrier. ",
+const replies: Record<string, string> = {
+  'Why is my skin dry today?': 'Your skin can feel dry today because low humidity pulls water from the outer barrier. Use hyaluronic acid on damp skin, then seal it with a ceramide moisturizer. Keep exfoliation paused tonight.',
+  'Can I use niacinamide with retinol?': 'Yes. For sensitive combination skin, use niacinamide in the morning and retinol at night. Start retinol two nights a week and keep moisturizer close.',
+  'Suggest a routine under Rs 1500': 'A calm budget routine could be a gentle cleanser, Minimalist niacinamide, a ceramide moisturizer, and a lightweight sunscreen. I would keep retinol out until your barrier feels steadier.',
+  'Is this safe during periods?': 'During periods, skin can be more reactive. Keep actives gentle, avoid introducing new exfoliants, and prioritize hydration plus sunscreen.',
 };
 
+function BreathingOrb() {
+  const scale = useSharedValue(1);
+  React.useEffect(() => {
+    scale.value = withRepeat(withTiming(1.08, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1, true);
+  }, []);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return <Animated.View style={style}><Orb size={64} /></Animated.View>;
+}
+
 export default function AgentScreen() {
-  const { agentMessages, addAgentMessage } = useRumiStore();
+  const { onboardingAnswers, chatMessages, addChatMessage } = useRumiStore();
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
-  const hour = new Date().getHours();
-  const mood = hour < 12 ? 'Good morning' : hour < 18 ? 'Hey there' : 'Evening vibes';
+  const name = String(onboardingAnswers.name || 'Ayush');
 
-  const sendMessage = (text: string) => {
-    const msg = text.trim();
-    if (!msg) return;
-    addAgentMessage('user', msg);
+  const send = (text: string) => {
+    const message = text.trim();
+    if (!message) return;
+    haptic();
+    addChatMessage('user', message);
     setInput('');
     setTimeout(() => {
-      const reply = DUMMY_REPLIES[msg] || DUMMY_REPLIES.default;
-      addAgentMessage('agent', reply);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    }, 1000);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      addChatMessage('rumi', replies[message] || 'I would keep this gentle for your current profile. Tell me the product name or ingredient list and I can place it in your routine with timing and cautions.');
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    }, 650);
   };
 
   return (
-    <KeyboardAvoidingView style={st.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-      <LinearGradient colors={['#FFF8F0', '#FDFAF6']} style={StyleSheet.absoluteFill} />
+    <ScreenContainer padded={false}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.topActions}>
+            <Pressable style={styles.round}><Icon name="settings" /></Pressable>
+            <Pressable style={styles.round}><Icon name="bell" /></Pressable>
+          </View>
+          <View style={styles.hero}>
+            <BreathingOrb />
+            <Text style={styles.title}>Rumi</Text>
+            <Text style={styles.greeting}>Good morning, {name}</Text>
+            <Text style={styles.subtitle}>I am your skincare companion. Ask me anything.</Text>
+          </View>
 
-      <ScrollView ref={scrollRef} contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header with orb */}
-        <View style={st.header}>
-          <PulsingOrb />
-          <Text style={st.title}>Rumi</Text>
-          <Text style={st.subtitle}>{mood} I'm your skincare bestie.</Text>
-        </View>
+          <Card style={styles.insight}>
+            <CircleIcon name="sparkle" tone={Colors.pink} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.insightKicker}>Today's skin insight</Text>
+              <Text style={styles.insightTitle}>Your skin looks a bit dehydrated.</Text>
+              <Text style={styles.insightText}>Low humidity and late nights could be the reason.</Text>
+            </View>
+            <Pressable style={styles.details}>
+              <Text style={styles.detailsText}>See details</Text>
+              <Icon name="arrow" size={18} />
+            </Pressable>
+          </Card>
 
-        {/* Empty state */}
-        {agentMessages.length === 0 && (
-          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={st.emptyState}>
-            <Text style={st.emptyTitle}>Ask anything about skincare</Text>
-            <View style={st.promptsGrid}>
-              {QUICK_PROMPTS.map((p, i) => (
-                <Animated.View key={p} entering={FadeInDown.delay(400 + i * 80).duration(400)}>
-                  <Pressable style={({ pressed }) => [st.promptPill, pressed && { opacity: 0.8 }]} onPress={() => sendMessage(p)}>
-                    <Text style={st.promptText}>{p}</Text>
+          {chatMessages.length === 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Popular questions</Text>
+                <Text style={styles.seeAll}>See all</Text>
+              </View>
+              <View style={styles.promptStack}>
+                {prompts.map(([title, subtitle, icon]) => (
+                  <Pressable key={title} style={styles.promptCard} onPress={() => send(title)}>
+                    <CircleIcon name={icon as any} tone={Colors.pink} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.promptTitle}>{title}</Text>
+                      <Text style={styles.promptSubtitle}>{subtitle}</Text>
+                    </View>
+                    <View style={styles.promptArrow}><Icon name="arrow" size={18} /></View>
                   </Pressable>
-                </Animated.View>
-              ))}
-            </View>
-          </Animated.View>
-        )}
+                ))}
+              </View>
+            </>
+          )}
 
-        {/* Messages */}
-        {agentMessages.map((msg, i) => (
-          <Animated.View key={i} entering={FadeInDown.duration(300)} style={[st.msgRow, msg.role === 'user' && st.msgRowUser]}>
-            <View style={[st.bubble, msg.role === 'user' ? st.userBubble : st.agentBubble]}>
-              <Text style={[st.msgText, msg.role === 'user' && st.userMsgText]}>{msg.content}</Text>
-            </View>
-          </Animated.View>
-        ))}
-      </ScrollView>
+          <View style={styles.chatStack}>
+            {chatMessages.map((message) => (
+              <View key={message.id} style={[styles.messageRow, message.role === 'user' && styles.messageRowUser]}>
+                <View style={[styles.bubble, message.role === 'user' ? styles.userBubble : styles.rumiBubble]}>
+                  <Text style={[styles.messageText, message.role === 'user' && styles.userText]}>{message.content}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
 
-      {/* Input */}
-      <View style={st.inputRow}>
-        <TextInput style={st.input} value={input} onChangeText={setInput} placeholder="Ask Rumi anything..." placeholderTextColor={Colors.softGray} multiline onSubmitEditing={() => sendMessage(input)} />
-        <Pressable style={[st.sendBtn, !input.trim() && { opacity: 0.4 }]} onPress={() => sendMessage(input)} disabled={!input.trim()}>
-          <Text style={st.sendText}>↑</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+        <View style={styles.inputPanel}>
+          <View style={styles.inputRow}>
+            <CircleIcon name="sparkle" tone={Colors.shell} size={54} />
+            <TextInput value={input} onChangeText={setInput} placeholder="Ask Rumi anything..." placeholderTextColor={Colors.muted} multiline style={styles.input} />
+            <Pressable disabled={!input.trim()} onPress={() => send(input)} style={[styles.send, !input.trim() && styles.sendDisabled]}>
+              <Icon name="send" color={Colors.white} />
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pills}>
+            {['Acne help', 'Product review', 'Ingredient check'].map((pill) => (
+              <Pressable key={pill} style={styles.pill} onPress={() => setInput(pill)}>
+                <Text style={styles.pillText}>{pill}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
-const st = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cream },
-  scroll: { paddingTop: 72, paddingBottom: 16, paddingHorizontal: Spacing.lg, gap: 12 },
-  header: { alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: '600', color: Colors.charcoal },
-  subtitle: { fontSize: 13, color: Colors.warmGray, marginTop: 4 },
-  emptyState: { alignItems: 'center', gap: 16, marginTop: 24 },
-  emptyTitle: { fontSize: 15, fontWeight: '500', color: Colors.warmGray },
-  promptsGrid: { gap: 8, width: '100%' },
-  promptPill: { backgroundColor: Colors.cardBg, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.cloud },
-  promptText: { fontSize: 14, color: Colors.charcoal, fontWeight: '500' },
-  msgRow: { alignItems: 'flex-start' },
-  msgRowUser: { alignItems: 'flex-end' },
-  bubble: { maxWidth: '85%', padding: 14, borderRadius: 20 },
-  userBubble: { backgroundColor: Colors.charcoal, borderBottomRightRadius: 6 },
-  agentBubble: { backgroundColor: Colors.cardBg, borderBottomLeftRadius: 6, ...Shadows.soft },
-  msgText: { fontSize: 14, color: Colors.charcoal, lineHeight: 21 },
-  userMsgText: { color: '#FFFFFF' },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16, paddingTop: 8, gap: 8, backgroundColor: Colors.cream },
-  input: { flex: 1, backgroundColor: Colors.cardBg, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: Colors.charcoal, maxHeight: 100, borderWidth: 1, borderColor: Colors.cloud },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.charcoal, alignItems: 'center', justifyContent: 'center' },
-  sendText: { fontSize: 18, color: '#FFF', fontWeight: '700' },
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  scroll: { paddingTop: 48, paddingHorizontal: Spacing.x4, paddingBottom: 172, gap: Spacing.x3 },
+  topActions: { flexDirection: 'row', justifyContent: 'space-between' },
+  round: { width: 54, height: 54, borderRadius: 27, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', ...Shadows.soft },
+  hero: { alignItems: 'center' },
+  title: { marginTop: Spacing.x1, fontFamily: Typography.serif, color: Colors.text, fontSize: 34, fontWeight: '700' },
+  greeting: { marginTop: Spacing.x1, fontFamily: Typography.serif, color: Colors.text, fontSize: 18, fontWeight: '700' },
+  subtitle: { marginTop: Spacing.x1, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 12 },
+  insight: { padding: Spacing.x3, flexDirection: 'row', alignItems: 'center', gap: Spacing.x3 },
+  insightKicker: { fontFamily: Typography.sans, color: '#C98276', fontSize: 14, fontWeight: '800' },
+  insightTitle: { marginTop: Spacing.x2, fontFamily: Typography.sans, color: Colors.text, fontSize: 17, fontWeight: '900' },
+  insightText: { marginTop: Spacing.x2, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 14 },
+  details: { borderRadius: Radius.pill, backgroundColor: '#F4E9E5', paddingHorizontal: Spacing.x2, paddingVertical: Spacing.x2, flexDirection: 'row', alignItems: 'center', gap: Spacing.x1 },
+  detailsText: { fontFamily: Typography.sans, color: Colors.text, fontWeight: '800', fontSize: 13 },
+  sectionHeader: { marginTop: Spacing.x2, flexDirection: 'row', justifyContent: 'space-between' },
+  sectionTitle: { fontFamily: Typography.serif, color: Colors.text, fontSize: 19, fontWeight: '700' },
+  seeAll: { fontFamily: Typography.sans, color: Colors.secondary, fontWeight: '700' },
+  promptStack: { gap: Spacing.x4 },
+  promptCard: { minHeight: 60, borderRadius: Radius.medium, backgroundColor: Colors.card, flexDirection: 'row', alignItems: 'center', gap: Spacing.x3, padding: Spacing.x3, ...Shadows.soft },
+  promptTitle: { fontFamily: Typography.sans, color: Colors.text, fontSize: 13, fontWeight: '900' },
+  promptSubtitle: { marginTop: 2, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 11 },
+  promptArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F4EEEA', alignItems: 'center', justifyContent: 'center' },
+  chatStack: { gap: Spacing.x3 },
+  messageRow: { alignItems: 'flex-start' },
+  messageRowUser: { alignItems: 'flex-end' },
+  bubble: { maxWidth: '86%', borderRadius: Radius.medium, padding: Spacing.x4 },
+  rumiBubble: { backgroundColor: Colors.card, ...Shadows.soft },
+  userBubble: { backgroundColor: Colors.black },
+  messageText: { fontFamily: Typography.sans, color: Colors.text, fontSize: 15, lineHeight: 22 },
+  userText: { color: Colors.white },
+  inputPanel: { position: 'absolute', left: Spacing.x4, right: Spacing.x4, bottom: 82, borderRadius: Radius.medium, backgroundColor: Colors.card, padding: Spacing.x2, gap: Spacing.x2, ...Shadows.soft },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x2 },
+  input: { flex: 1, maxHeight: 56, fontFamily: Typography.sans, color: Colors.text, fontSize: 13, backgroundColor: '#FBF8F6', borderRadius: Radius.pill, paddingHorizontal: Spacing.x3, paddingVertical: Spacing.x2 },
+  send: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#7D746D', alignItems: 'center', justifyContent: 'center' },
+  sendDisabled: { opacity: 0.45 },
+  pills: { gap: Spacing.x3 },
+  pill: { borderRadius: Radius.pill, borderWidth: 1, borderColor: Colors.line, paddingHorizontal: Spacing.x4, paddingVertical: Spacing.x2 },
+  pillText: { fontFamily: Typography.sans, color: Colors.text, fontWeight: '700', fontSize: 13 },
 });

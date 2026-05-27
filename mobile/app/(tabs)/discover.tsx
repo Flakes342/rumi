@@ -1,124 +1,142 @@
-/**
- * Rumi — Discover Feed
- * Beauty Pinterest energy, personalized product cards, editorial content.
- */
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/Theme';
-import { useRumiStore, DUMMY_PRODUCTS, DISCOVERY_CARDS } from '@/store/useRumiStore';
+import React, { useMemo, useState } from 'react';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import { Card, CircleIcon, Icon, ScreenContainer, SectionHeader, haptic } from '@/components/RumiUI';
+import { Colors, Radius, Shadows, Spacing, Typography } from '@/constants/Theme';
+import { Product, products } from '@/constants/RumiData';
+import { useRumiStore } from '@/store/useRumiStore';
 
-const { width } = Dimensions.get('window');
-
-function ProductCard({ product, index }: { product: any; index: number }) {
-  const { savedProducts, toggleSavedProduct } = useRumiStore();
-  const isSaved = savedProducts.includes(product.id);
-  const emoji = product.category === 'Serum' ? '💧' : product.category === 'Cleanser' ? '🫧' : product.category === 'Sunscreen' ? '☀️' : '🧴';
-
-  return (
-    <Animated.View entering={FadeInDown.delay(200 + index * 100).duration(500)}>
-      <Pressable style={({ pressed }) => [pStyles.card, pressed && { opacity: 0.95 }]} onPress={() => router.push('/routine')}>
-        <LinearGradient colors={[Colors.cloud, Colors.blush]} style={pStyles.imgBox}>
-          <Text style={{ fontSize: 48, opacity: 0.6 }}>{emoji}</Text>
-          <Pressable style={pStyles.saveBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleSavedProduct(product.id); }}>
-            <Text style={{ fontSize: 18, color: Colors.terracotta }}>{isSaved ? '♥' : '♡'}</Text>
-          </Pressable>
-        </LinearGradient>
-        <View style={pStyles.info}>
-          <View style={pStyles.matchBadge}><Text style={pStyles.matchText}>{product.matchScore}% match</Text></View>
-          <Text style={pStyles.brand}>{product.brand}</Text>
-          <Text style={pStyles.name} numberOfLines={2}>{product.name}</Text>
-          <Text style={pStyles.why} numberOfLines={2}>{product.whyItWorks}</Text>
-          <View style={pStyles.flagsRow}>
-            {product.greenFlags.slice(0, 2).map((f: string) => (
-              <View key={f} style={pStyles.gf}><Text style={pStyles.gfT}>✓ {f}</Text></View>
-            ))}
-            {product.redFlags.map((f: string) => (
-              <View key={f} style={pStyles.rf}><Text style={pStyles.rfT}>⚠ {f}</Text></View>
-            ))}
-          </View>
-          <Text style={pStyles.price}>₹{product.price}</Text>
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-const pStyles = StyleSheet.create({
-  card: { backgroundColor: Colors.cardBg, borderRadius: BorderRadius.lg, overflow: 'hidden', ...Shadows.soft },
-  imgBox: { height: 160, alignItems: 'center', justifyContent: 'center', position: 'relative' as const },
-  saveBtn: { position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.glass, alignItems: 'center', justifyContent: 'center' },
-  info: { padding: Spacing.md, gap: 3 },
-  matchBadge: { alignSelf: 'flex-start', backgroundColor: Colors.sage + '20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, marginBottom: 4 },
-  matchText: { fontSize: 11, fontWeight: '600', color: Colors.sage },
-  brand: { fontSize: 11, fontWeight: '500', color: Colors.warmGray, textTransform: 'uppercase', letterSpacing: 0.5 },
-  name: { fontSize: 15, fontWeight: '600', color: Colors.charcoal },
-  why: { fontSize: 11, color: Colors.warmGray, marginTop: 2 },
-  flagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
-  gf: { backgroundColor: Colors.greenFlag + '15', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  gfT: { fontSize: 10, color: Colors.greenFlag, fontWeight: '500' },
-  rf: { backgroundColor: Colors.redFlag + '15', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  rfT: { fontSize: 10, color: Colors.redFlag, fontWeight: '500' },
-  price: { fontSize: 15, fontWeight: '700', color: Colors.charcoal, marginTop: 8 },
-});
-
-export default function DiscoverScreen() {
-  const [activeTab, setActiveTab] = useState('for-you');
-  const tabs = [{ id: 'for-you', label: 'For You' }, { id: 'trending', label: 'Trending' }, { id: 'editorial', label: 'Editorial' }];
+function ProductCard({ product, compact }: { product: Product; compact?: boolean }) {
+  const { savedProducts, toggleSavedProduct, addToShelf } = useRumiStore();
+  const saved = savedProducts.includes(product.id);
 
   return (
-    <View style={s.container}>
-      <LinearGradient colors={['#FFF8F0', '#FDFAF6']} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeIn.delay(100).duration(400)}>
-          <Text style={s.title}>Discover</Text>
-          <Text style={s.subtitle}>Personalized for your sensitive combination skin</Text>
-        </Animated.View>
-
-        <View style={s.tabRow}>
-          {tabs.map(t => (
-            <Pressable key={t.id} style={[s.tab, activeTab === t.id && s.tabOn]} onPress={() => setActiveTab(t.id)}>
-              <Text style={[s.tabText, activeTab === t.id && s.tabTextOn]}>{t.label}</Text>
-            </Pressable>
+    <Pressable style={[styles.productCard, compact && styles.compactCard]} onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } } as any)}>
+      <View style={styles.productImageWrap}>
+        {(product.discount || product.badge) && <Text style={styles.badge}>{product.discount || product.badge}</Text>}
+        <Pressable
+          style={styles.saveButton}
+          onPress={() => {
+            haptic();
+            toggleSavedProduct(product.id);
+          }}
+        >
+          <Icon name={saved ? 'saved' : 'save'} size={20} color={saved ? '#B84E4A' : Colors.text} />
+        </Pressable>
+        <Image source={product.image} style={styles.productImage} />
+      </View>
+      <Text style={styles.brand}>{product.brand}</Text>
+      <Text style={styles.productName}>{product.name}</Text>
+      <Text style={styles.match}>{product.match}% match</Text>
+      <View style={styles.priceRow}>
+        <Text style={styles.price}>Rs {product.price}</Text>
+        {product.mrp && <Text style={styles.mrp}>Rs {product.mrp}</Text>}
+      </View>
+      {!compact && (
+        <View style={styles.retailers}>
+          {product.retailers.slice(0, 3).map((retailer) => (
+            <View key={retailer.name} style={styles.retailerRow}>
+              <Text style={styles.retailer}>{retailer.name}</Text>
+              <Text style={styles.retailerPrice}>Rs {retailer.price}</Text>
+            </View>
           ))}
         </View>
-
-        <View style={s.callout}><Text style={s.calloutText}>Because your skin is sensitive and dehydrated</Text></View>
-
-        <Text style={s.secTitle}>Explore</Text>
-        {DISCOVERY_CARDS.slice(0, 4).map((card, i) => (
-          <Animated.View key={card.id} entering={FadeInDown.delay(100 + i * 100).duration(500)}>
-            <Pressable style={[s.editCard, { backgroundColor: card.color }]} onPress={() => router.push('/routine')}>
-              <Text style={{ fontSize: 36 }}>{card.emoji}</Text>
-              <View style={{ flex: 1 }}><Text style={s.editTitle}>{card.title}</Text><Text style={s.editSub}>{card.subtitle}</Text></View>
-            </Pressable>
-          </Animated.View>
-        ))}
-
-        <Text style={[s.secTitle, { marginTop: 16 }]}>Recommended for you</Text>
-        {DUMMY_PRODUCTS.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-      </ScrollView>
-    </View>
+      )}
+      <Pressable
+        style={styles.productAction}
+        onPress={() => compact ? addToShelf(product.id) : Linking.openURL(product.retailers[0].url)}
+      >
+        <Text style={styles.productActionText}>{compact ? 'Add to routine' : 'View product'}</Text>
+        <Icon name={compact ? 'plus' : 'arrow'} size={18} />
+      </Pressable>
+    </Pressable>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.cream },
-  scroll: { paddingTop: 72, paddingBottom: 64, paddingHorizontal: Spacing.lg, gap: 12 },
-  title: { fontSize: 34, fontWeight: '600', color: Colors.charcoal },
-  subtitle: { fontSize: 13, color: Colors.warmGray, marginBottom: 8 },
-  tabRow: { flexDirection: 'row', gap: 4 },
-  tab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999 },
-  tabOn: { backgroundColor: Colors.charcoal },
-  tabText: { fontSize: 13, fontWeight: '500', color: Colors.warmGray },
-  tabTextOn: { color: '#FFF' },
-  callout: { backgroundColor: Colors.rose + '10', borderRadius: 16, padding: 12 },
-  calloutText: { fontSize: 13, fontWeight: '500', color: Colors.charcoal },
-  secTitle: { fontSize: 20, fontWeight: '600', color: Colors.charcoal, marginTop: 8 },
-  editCard: { borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16, ...Shadows.soft },
-  editTitle: { fontSize: 15, fontWeight: '600', color: Colors.charcoal },
-  editSub: { fontSize: 11, color: Colors.warmGray },
+export default function DiscoverScreen() {
+  const [query, setQuery] = useState('');
+  const { savedProducts } = useRumiStore();
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return products;
+    return products.filter((product) =>
+      [product.name, product.brand, product.ingredient, product.category].join(' ').toLowerCase().includes(normalized)
+    );
+  }, [query]);
+  const saved = products.filter((product) => savedProducts.includes(product.id));
+
+  return (
+    <ScreenContainer>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View>
+          <Text style={styles.title}>Discover</Text>
+          <Text style={styles.subtitle}>Smart picks, best deals and products your skin will love.</Text>
+        </View>
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Icon name="search" color={Colors.secondary} />
+            <TextInput value={query} onChangeText={setQuery} placeholder="Search for products, brands or ingredients" placeholderTextColor={Colors.secondary} style={styles.searchInput} />
+          </View>
+          <Pressable style={styles.filter}>
+            <Icon name="filter" />
+          </Pressable>
+        </View>
+
+        <SectionHeader title="Best deals" subtitle="Top offers across trusted platforms" />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>
+          {filtered.slice(0, 3).map((product) => <ProductCard key={product.id} product={product} />)}
+        </ScrollView>
+
+        <SectionHeader title="For you" subtitle="AI picks tailored to your skin and goals" />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>
+          {filtered.slice(3).map((product) => <ProductCard key={product.id} product={product} compact />)}
+        </ScrollView>
+
+        <SectionHeader title="Saved products" subtitle="Your saved favorites" />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.savedRow}>
+          {(saved.length ? saved : products.slice(0, 4)).map((product) => (
+            <Pressable key={product.id} style={styles.savedCard} onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } } as any)}>
+              <Image source={product.image} style={styles.savedImage} />
+              <Text style={styles.savedTitle}>{product.brand}</Text>
+              <Text style={styles.savedName}>{product.name}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  scroll: { paddingTop: 50, paddingBottom: 88, gap: Spacing.x4 },
+  title: { fontFamily: Typography.sans, fontSize: 30, color: Colors.text, fontWeight: '900' },
+  subtitle: { marginTop: Spacing.x2, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 15, lineHeight: 22 },
+  searchRow: { flexDirection: 'row', gap: Spacing.x3 },
+  searchBox: { flex: 1, height: 44, borderRadius: Radius.pill, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.line, paddingHorizontal: Spacing.x3, flexDirection: 'row', alignItems: 'center', gap: Spacing.x2, ...Shadows.soft },
+  searchInput: { flex: 1, fontFamily: Typography.sans, fontSize: 14, color: Colors.text },
+  filter: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.line, alignItems: 'center', justifyContent: 'center', ...Shadows.soft },
+  horizontal: { gap: Spacing.x4, paddingRight: Spacing.x6 },
+  productCard: { width: 170, borderRadius: Radius.medium, backgroundColor: Colors.card, padding: Spacing.x2, ...Shadows.soft },
+  compactCard: { width: 162 },
+  productImageWrap: { height: 104, borderRadius: Radius.small, backgroundColor: '#FAF4F1', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  productImage: { width: '88%', height: '88%', resizeMode: 'contain' },
+  badge: { position: 'absolute', left: Spacing.x3, top: Spacing.x3, zIndex: 2, borderRadius: Radius.pill, backgroundColor: '#FFF4F2', paddingHorizontal: Spacing.x3, paddingVertical: 5, fontFamily: Typography.sans, color: '#B84E4A', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  saveButton: { position: 'absolute', right: Spacing.x3, top: Spacing.x3, zIndex: 2, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.82)', alignItems: 'center', justifyContent: 'center' },
+  brand: { marginTop: Spacing.x3, fontFamily: Typography.sans, fontSize: 13, color: Colors.text, fontWeight: '900' },
+  productName: { marginTop: 3, minHeight: 32, fontFamily: Typography.sans, fontSize: 12, lineHeight: 16, color: Colors.text, fontWeight: '700' },
+  match: { alignSelf: 'flex-start', marginTop: Spacing.x2, borderRadius: Radius.pill, backgroundColor: '#E7F1E5', paddingHorizontal: Spacing.x2, paddingVertical: 4, fontFamily: Typography.sans, color: '#5F945F', fontSize: 11, fontWeight: '900' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x2, marginTop: Spacing.x2 },
+  price: { fontFamily: Typography.sans, color: Colors.text, fontSize: 14, fontWeight: '900' },
+  mrp: { fontFamily: Typography.sans, color: Colors.muted, fontSize: 13, textDecorationLine: 'line-through' },
+  retailers: { marginTop: Spacing.x2, gap: 3 },
+  retailerRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  retailer: { fontFamily: Typography.sans, color: Colors.text, fontSize: 12, fontWeight: '700' },
+  retailerPrice: { fontFamily: Typography.sans, color: Colors.secondary, fontSize: 12 },
+  productAction: { marginTop: Spacing.x2, height: 34, borderRadius: Radius.pill, backgroundColor: '#F4EEEA', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.x1 },
+  productActionText: { fontFamily: Typography.sans, color: Colors.text, fontSize: 11, fontWeight: '900' },
+  savedRow: { gap: Spacing.x3, paddingRight: Spacing.x6 },
+  savedCard: { width: 152, borderRadius: Radius.medium, backgroundColor: Colors.card, padding: Spacing.x3, ...Shadows.soft },
+  savedImage: { width: '100%', height: 110, resizeMode: 'contain', backgroundColor: '#FAF4F1', borderRadius: Radius.small },
+  savedTitle: { marginTop: Spacing.x2, fontFamily: Typography.sans, color: Colors.text, fontSize: 12, fontWeight: '900' },
+  savedName: { marginTop: 2, fontFamily: Typography.sans, color: Colors.text, fontSize: 12, lineHeight: 17 },
 });
