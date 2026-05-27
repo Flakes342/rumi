@@ -1,117 +1,90 @@
-/**
- * Rumi — Tab Navigation Layout
- * Premium floating tab bar with central FAB
- */
 import React from 'react';
-import { Tabs, router } from 'expo-router';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
-import { Colors, Shadows } from '@/constants/Theme';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { Icon, RumiIconName } from '@/components/RumiUI';
+import { Colors, Radius, Shadows, Typography } from '@/constants/Theme';
+
+const tabs: Record<string, { label: string; icon: RumiIconName }> = {
+  index: { label: 'Home', icon: 'home' },
+  discover: { label: 'Discover', icon: 'discover' },
+  routine: { label: 'Routine', icon: 'routine' },
+  agent: { label: 'Rumi', icon: 'rumi' },
+  profile: { label: 'Profile', icon: 'profile' },
+};
+
+function TabIcon({ focused, route }: { focused: boolean; route: keyof typeof tabs }) {
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: withTiming(focused ? 1.08 : 1, { duration: 180 }) }],
+  }));
+
+  return (
+    <Animated.View style={[styles.tabItem, style]}>
+      <View style={[styles.iconShell, focused && styles.iconShellOn]}>
+        <Icon name={tabs[route].icon} size={20} color={focused ? Colors.text : Colors.secondary} />
+      </View>
+      <Text style={[styles.label, focused && styles.labelOn]}>{tabs[route].label}</Text>
+    </Animated.View>
+  );
+}
 
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 70 : 65,
-          position: 'absolute',
-          bottom: 25,
-          left: 20,
-          right: 20,
-          borderRadius: 35,
-          paddingBottom: 0,
-          ...Shadows.medium,
-        },
         tabBarShowLabel: false,
-      }}
+        tabBarStyle: styles.tabBar,
+        tabBarIcon: ({ focused }) => <TabIcon focused={focused} route={route.name as keyof typeof tabs} />,
+      })}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'home' : 'home-outline'} 
-              size={24} 
-              color={focused ? Colors.charcoal : Colors.softGray} 
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'chatbubble' : 'chatbubble-outline'} 
-              size={24} 
-              color={focused ? Colors.charcoal : Colors.softGray} 
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="scan_placeholder"
-        options={{
-          tabBarButton: (props) => (
-            <Pressable 
-              style={styles.fabContainer} 
-              onPress={() => router.push('/scan')}
-            >
-              <View style={styles.fab}>
-                <Ionicons name="scan" size={24} color="#FFFFFF" />
-              </View>
-            </Pressable>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="agent"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'hexagon' : 'hexagon-outline'} 
-              size={24} 
-              color={focused ? Colors.charcoal : Colors.softGray} 
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Ionicons 
-              name={focused ? 'heart' : 'heart-outline'} 
-              size={24} 
-              color={focused ? Colors.charcoal : Colors.softGray} 
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="discover" />
+      <Tabs.Screen name="routine" />
+      <Tabs.Screen name="agent" />
+      <Tabs.Screen name="profile" />
+      <Tabs.Screen name="recommender" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  fabContainer: {
-    top: -20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  tabBar: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: Platform.OS === 'ios' ? 12 : 10,
+    height: Platform.OS === 'ios' ? 70 : 64,
+    borderRadius: 24,
+    borderTopWidth: 0,
+    backgroundColor: Colors.card,
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 8,
+    ...Shadows.soft,
   },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1E1E1E',
-    justifyContent: 'center',
+  tabItem: {
     alignItems: 'center',
-    shadowColor: '#1E1E1E',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    justifyContent: 'center',
+    gap: 1,
+    width: 58,
+  },
+  iconShell: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconShellOn: {
+    backgroundColor: '#F2ECE8',
+  },
+  label: {
+    fontFamily: Typography.sans,
+    fontSize: 10,
+    color: Colors.secondary,
+  },
+  labelOn: {
+    color: Colors.text,
+    fontWeight: '700',
   },
 });

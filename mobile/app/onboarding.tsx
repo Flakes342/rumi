@@ -1,470 +1,179 @@
-/**
- * Rumi — Onboarding Flow
- *
- * Conversational, emotionally intelligent, visually beautiful.
- * Varied input types: pills, multi-select, text input, sliders.
- * Smooth transitions between questions.
- */
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  TextInput,
-  Dimensions,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-  withSpring,
-  Easing,
-  FadeIn,
-  FadeOut,
-  SlideInRight,
-  SlideOutLeft,
-} from 'react-native-reanimated';
+import React, { useEffect, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { Colors, Spacing, BorderRadius, Typography, Animation } from '@/constants/Theme';
-import { ONBOARDING_QUESTIONS, ONBOARDING_SECTIONS, TOTAL_QUESTIONS } from '@/constants/OnboardingQuestions';
+import { Icon, PrimaryButton, ScreenContainer, haptic } from '@/components/RumiUI';
+import { Colors, Radius, Shadows, Spacing, Typography } from '@/constants/Theme';
+import { ONBOARDING_QUESTIONS, TOTAL_QUESTIONS } from '@/constants/OnboardingQuestions';
 import { useRumiStore } from '@/store/useRumiStore';
 
-const { width, height } = Dimensions.get('window');
-
-// ── Progress Indicator ───────────────────────────────────
-function ProgressBar({ current, total }: { current: number; total: number }) {
-  const progress = (current + 1) / total;
-
-  const animatedWidth = useAnimatedStyle(() => ({
-    width: withSpring(`${progress * 100}%` as any, {
-      damping: 20,
-      stiffness: 100,
-    }),
-  }));
-
-  // Find current section
-  const currentQuestion = ONBOARDING_QUESTIONS[current];
-  const section = ONBOARDING_SECTIONS.find((s) => s.id === currentQuestion?.category);
-
-  return (
-    <View style={progressStyles.container}>
-      <View style={progressStyles.barTrack}>
-        <Animated.View style={[progressStyles.barFill, animatedWidth]} />
-      </View>
-      {section && (
-        <Animated.Text
-          entering={FadeIn.duration(300)}
-          style={progressStyles.sectionLabel}
-        >
-          {section.emoji} {section.label}
-        </Animated.Text>
-      )}
-    </View>
-  );
+function optionValue(label: string) {
+  return label.toLowerCase().replace(/\s+/g, ' ');
 }
 
-const progressStyles = StyleSheet.create({
-  container: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  barTrack: {
-    height: 3,
-    backgroundColor: Colors.cloud,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    backgroundColor: Colors.rose,
-    borderRadius: 2,
-  },
-  sectionLabel: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.warmGray,
-    fontWeight: Typography.weights.medium,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-});
-
-// ── Pill Button ──────────────────────────────────────────
-function PillButton({
-  label,
-  emoji,
-  selected,
-  onPress,
-  delay = 0,
-}: {
-  label: string;
-  emoji?: string;
-  selected: boolean;
-  onPress: () => void;
-  delay?: number;
-}) {
-  return (
-    <Animated.View entering={FadeIn.delay(delay).duration(400)}>
-      <Pressable
-        style={({ pressed }) => [
-          pillStyles.pill,
-          selected && pillStyles.pillSelected,
-          pressed && pillStyles.pillPressed,
-        ]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onPress();
-        }}
-      >
-        {emoji && <Text style={pillStyles.emoji}>{emoji}</Text>}
-        <Text style={[pillStyles.label, selected && pillStyles.labelSelected]}>
-          {label}
-        </Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-const pillStyles = StyleSheet.create({
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.pill,
-    backgroundColor: Colors.cardBg,
-    borderWidth: 1.5,
-    borderColor: Colors.cloud,
-    gap: Spacing.xs,
-  },
-  pillSelected: {
-    backgroundColor: Colors.rose,
-    borderColor: Colors.rose,
-  },
-  pillPressed: {
-    transform: [{ scale: 0.97 }],
-  },
-  emoji: {
-    fontSize: 18,
-  },
-  label: {
-    fontSize: Typography.sizes.base,
-    fontWeight: Typography.weights.medium,
-    color: Colors.charcoal,
-  },
-  labelSelected: {
-    color: '#FFFFFF',
-  },
-});
-
-// ── Text Input Card ─────────────────────────────────────
-function TextInputCard({
-  value,
-  onChangeText,
-  placeholder,
-}: {
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <Animated.View entering={FadeIn.delay(200).duration(400)}>
-      <TextInput
-        style={textInputStyles.input}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.softGray}
-        autoFocus
-        autoCapitalize="words"
-      />
-    </Animated.View>
-  );
-}
-
-const textInputStyles = StyleSheet.create({
-  input: {
-    fontSize: Typography.sizes.xl,
-    fontWeight: Typography.weights.medium,
-    color: Colors.charcoal,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.rose,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
-  },
-});
-
-// ── Main Onboarding Screen ──────────────────────────────
 export default function OnboardingScreen() {
-  const {
-    onboardingAnswers,
-    setOnboardingAnswer,
-    currentQuestionIndex,
-    setCurrentQuestionIndex,
-  } = useRumiStore();
-
-  const [textValue, setTextValue] = useState('');
-  const [animationKey, setAnimationKey] = useState(0);
-
+  const { onboardingAnswers, setOnboardingAnswer, currentQuestionIndex, setCurrentQuestionIndex } = useRumiStore();
   const question = ONBOARDING_QUESTIONS[currentQuestionIndex];
-  const answer = onboardingAnswers[question?.key];
+  const [text, setText] = useState('');
+  const answer = onboardingAnswers[question.key];
+  const progress = ((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100;
+  const isLast = currentQuestionIndex === TOTAL_QUESTIONS - 1;
 
-  const isLastQuestion = currentQuestionIndex === TOTAL_QUESTIONS - 1;
+  useEffect(() => {
+    setText(typeof answer === 'string' ? answer : '');
+  }, [question.id]);
 
-  const canProceed = (() => {
-    if (!question) return false;
-    if (question.type === 'single-pill') {
-      return textValue.trim().length > 0 || (typeof answer === 'string' && answer.length > 0);
+  const canProceed = useMemo(() => {
+    if (question.type === 'text') return text.trim().length > 0;
+    if (question.type === 'multi') return Array.isArray(answer) && answer.length > 0;
+    return answer !== undefined && answer !== '';
+  }, [answer, question.type, text]);
+
+  const saveOption = (label: string) => {
+    haptic();
+    if (question.type === 'multi') {
+      const current = Array.isArray(answer) ? answer : [];
+      const value = optionValue(label);
+      setOnboardingAnswer(
+        question.key,
+        current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+      );
+      return;
     }
-    if (question.multiSelect) {
-      return Array.isArray(answer) && answer.length > 0;
-    }
-    return !!answer;
-  })();
+    setOnboardingAnswer(question.key, optionValue(label));
+  };
 
-  const handlePillSelect = useCallback(
-    (value: string) => {
-      if (question.multiSelect) {
-        const current = (Array.isArray(answer) ? answer : []) as string[];
-        if (current.includes(value)) {
-          setOnboardingAnswer(
-            question.key,
-            current.filter((v) => v !== value)
-          );
-        } else {
-          setOnboardingAnswer(question.key, [...current, value]);
-        }
-      } else {
-        setOnboardingAnswer(question.key, value);
-      }
-    },
-    [question, answer]
-  );
-
-  const goNext = useCallback(() => {
-    // Save text inputs
-    if (question.type === 'single-pill' && textValue) {
-      setOnboardingAnswer(question.key, textValue);
-    }
-
-    if (isLastQuestion) {
-      // Navigate to reveal
+  const goNext = () => {
+    if (question.type === 'text') setOnboardingAnswer(question.key, text.trim());
+    haptic();
+    if (isLast) {
       router.replace('/reveal');
       return;
     }
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentQuestionIndex(currentQuestionIndex + 1);
-    setTextValue('');
-    setAnimationKey((k) => k + 1);
-  }, [currentQuestionIndex, isLastQuestion, textValue, question]);
+  };
 
-  const goBack = useCallback(() => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-      setTextValue('');
-      setAnimationKey((k) => k + 1);
-    } else {
+  const goBack = () => {
+    if (currentQuestionIndex === 0) {
       router.back();
+      return;
     }
-  }, [currentQuestionIndex]);
-
-  if (!question) return null;
+    setCurrentQuestionIndex(currentQuestionIndex - 1);
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <LinearGradient
-        colors={['#FFF8F0', '#FDFAF6']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
-        </Pressable>
-        <ProgressBar current={currentQuestionIndex} total={TOTAL_QUESTIONS} />
-      </View>
-
-      {/* Question Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.questionContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Animated.View
-          key={animationKey}
-          entering={SlideInRight.duration(400).easing(Easing.out(Easing.exp))}
-          style={styles.questionContainer}
-        >
-          {/* Question title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.questionTitle}>{question.title}</Text>
-            {question.subtitle && (
-              <Text style={styles.questionSubtitle}>{question.subtitle}</Text>
-            )}
+    <ScreenContainer>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.top}>
+          <Pressable onPress={goBack} style={styles.back}>
+            <Icon name="back" />
+          </Pressable>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
+          <Text style={styles.count}>{currentQuestionIndex + 1} of {TOTAL_QUESTIONS}</Text>
+        </View>
 
-          {/* Answer options */}
-          <View style={styles.optionsSection}>
-            {question.type === 'single-pill' ? (
-              <TextInputCard
-                value={textValue || (typeof answer === 'string' ? answer : '')}
-                onChangeText={setTextValue}
-                placeholder={
-                  question.key === 'name' ? 'Your name' : 'Type here...'
-                }
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Animated.View key={question.id} entering={FadeInDown.duration(420)} style={styles.questionCard}>
+            <Text style={styles.kicker}>Skin profile</Text>
+            <Text style={styles.title}>{question.title}</Text>
+            {question.subtitle && <Text style={styles.subtitle}>{question.subtitle}</Text>}
+
+            {question.type === 'text' && (
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder="Type here"
+                placeholderTextColor={Colors.muted}
+                style={styles.input}
+                autoFocus
               />
-            ) : (
-              <View style={styles.pillsContainer}>
-                {question.options?.map((option, index) => (
-                  <PillButton
-                    key={option.value}
-                    label={option.label}
-                    emoji={option.emoji}
-                    selected={
-                      question.multiSelect
-                        ? (Array.isArray(answer) ? answer : []).includes(option.value)
-                        : answer === option.value
-                    }
-                    onPress={() => handlePillSelect(option.value)}
-                    delay={index * 60}
-                  />
-                ))}
+            )}
+
+            {(question.type === 'single' || question.type === 'multi') && (
+              <View style={styles.options}>
+                {question.options?.map((label) => {
+                  const value = optionValue(label);
+                  const selected = question.type === 'multi' ? Array.isArray(answer) && answer.includes(value) : answer === value;
+                  return (
+                    <Pressable key={label} onPress={() => saveOption(label)} style={({ pressed }) => [styles.option, selected && styles.optionOn, pressed && styles.pressed]}>
+                      <Text style={[styles.optionText, selected && styles.optionTextOn]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
-          </View>
-        </Animated.View>
-      </ScrollView>
 
-      {/* Bottom CTA */}
-      <View style={styles.bottomSection}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.continueButton,
-            !canProceed && styles.continueButtonDisabled,
-            pressed && canProceed && styles.continueButtonPressed,
-          ]}
-          onPress={goNext}
-          disabled={!canProceed}
-        >
-          <Text
-            style={[
-              styles.continueText,
-              !canProceed && styles.continueTextDisabled,
-            ]}
-          >
-            {isLastQuestion ? 'Analyze my skin ✨' : 'Continue'}
-          </Text>
-        </Pressable>
+            {question.type === 'boolean' && (
+              <View style={styles.options}>
+                {['Yes', 'No'].map((label) => {
+                  const value = label === 'Yes';
+                  const selected = answer === value;
+                  return (
+                    <Pressable key={label} onPress={() => setOnboardingAnswer(question.key, value)} style={[styles.option, selected && styles.optionOn]}>
+                      <Text style={[styles.optionText, selected && styles.optionTextOn]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
-        {!question.multiSelect && question.type !== 'single-pill' && (
-          <Text style={styles.hintText}>Tap to select</Text>
-        )}
-        {question.multiSelect && (
-          <Text style={styles.hintText}>Select all that apply</Text>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+            {question.type === 'slider' && (
+              <View style={styles.sliderBox}>
+                <View style={styles.sliderLabels}>
+                  <Text style={styles.sliderLabel}>{question.minLabel}</Text>
+                  <Text style={styles.sliderLabel}>{question.maxLabel}</Text>
+                </View>
+                <View style={styles.scale}>
+                  {[1, 2, 3, 4, 5].map((value) => {
+                    const selected = answer === value;
+                    return (
+                      <Pressable key={value} onPress={() => setOnboardingAnswer(question.key, value)} style={[styles.scaleDot, selected && styles.scaleDotOn]}>
+                        <Text style={[styles.scaleText, selected && styles.scaleTextOn]}>{value}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </Animated.View>
+        </ScrollView>
+
+        <View style={styles.bottom}>
+          <PrimaryButton label={isLast ? 'Analyze my skin' : 'Continue'} onPress={goNext} disabled={!canProceed} />
+        </View>
+      </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.cream,
-  },
-  header: {
-    paddingTop: Spacing['3xl'],
-    gap: Spacing.md,
-  },
-  backButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xs,
-    alignSelf: 'flex-start',
-  },
-  backText: {
-    fontSize: Typography.sizes.xl,
-    color: Colors.charcoal,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  questionContent: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-  },
-  questionContainer: {
-    flex: 1,
-    gap: Spacing['2xl'],
-  },
-  titleSection: {
-    gap: Spacing.xs,
-  },
-  questionTitle: {
-    fontSize: Typography.sizes['2xl'],
-    fontWeight: Typography.weights.semibold,
-    color: Colors.charcoal,
-    lineHeight: Typography.sizes['2xl'] * Typography.lineHeights.snug,
-  },
-  questionSubtitle: {
-    fontSize: Typography.sizes.base,
-    fontWeight: Typography.weights.regular,
-    color: Colors.warmGray,
-    lineHeight: Typography.sizes.base * Typography.lineHeights.relaxed,
-    marginTop: Spacing.xxs,
-  },
-  optionsSection: {
-    gap: Spacing.sm,
-  },
-  pillsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  bottomSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    paddingTop: Spacing.md,
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  continueButton: {
-    width: '100%',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.pill,
-    backgroundColor: Colors.charcoal,
-    alignItems: 'center',
-  },
-  continueButtonDisabled: {
-    backgroundColor: Colors.cloud,
-  },
-  continueButtonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
-  },
-  continueText: {
-    fontSize: Typography.sizes.base,
-    fontWeight: Typography.weights.semibold,
-    color: '#FFFFFF',
-  },
-  continueTextDisabled: {
-    color: Colors.softGray,
-  },
-  hintText: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.softGray,
-  },
+  flex: { flex: 1 },
+  top: { paddingTop: 44, flexDirection: 'row', alignItems: 'center', gap: Spacing.x3 },
+  back: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', ...Shadows.soft },
+  progressTrack: { flex: 1, height: 4, borderRadius: Radius.pill, backgroundColor: Colors.line, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: Colors.pink, borderRadius: Radius.pill },
+  count: { fontFamily: Typography.sans, fontSize: 12, color: Colors.secondary, fontWeight: '700' },
+  content: { flexGrow: 1, justifyContent: 'flex-start', paddingTop: Spacing.x8, paddingBottom: Spacing.x4 },
+  questionCard: { gap: Spacing.x4 },
+  kicker: { fontFamily: Typography.sans, color: '#C47E72', textTransform: 'uppercase', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  title: { fontFamily: Typography.serif, fontSize: 24, lineHeight: 31, color: Colors.text, fontWeight: '700' },
+  subtitle: { fontFamily: Typography.sans, fontSize: 12, lineHeight: 18, color: Colors.secondary },
+  input: { height: 48, borderRadius: Radius.medium, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.line, paddingHorizontal: Spacing.x3, fontFamily: Typography.sans, fontSize: 14, color: Colors.text, ...Shadows.soft },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.x2 },
+  option: { paddingVertical: Spacing.x2, paddingHorizontal: Spacing.x3, borderRadius: Radius.pill, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.line, ...Shadows.soft },
+  optionOn: { backgroundColor: Colors.black, borderColor: Colors.black },
+  optionText: { fontFamily: Typography.sans, fontSize: 12, color: Colors.text, fontWeight: '700' },
+  optionTextOn: { color: Colors.white },
+  pressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
+  sliderBox: { gap: Spacing.x3 },
+  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  sliderLabel: { fontFamily: Typography.sans, color: Colors.secondary, fontSize: 13 },
+  scale: { flexDirection: 'row', justifyContent: 'space-between' },
+  scaleDot: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.line },
+  scaleDotOn: { backgroundColor: Colors.black },
+  scaleText: { fontFamily: Typography.sans, color: Colors.secondary, fontWeight: '800' },
+  scaleTextOn: { color: Colors.white },
+  bottom: { paddingBottom: 20 },
 });

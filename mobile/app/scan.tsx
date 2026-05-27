@@ -1,82 +1,42 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Pressable, Dimensions, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Theme';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
-
-const { width, height } = Dimensions.get('window');
+import { Icon } from '@/components/RumiUI';
+import { Colors, Radius, Spacing, Typography } from '@/constants/Theme';
+import { products } from '@/constants/RumiData';
 
 export default function ScanScreen() {
   return (
     <View style={styles.container}>
-      {/* Background Face Image */}
-      <Image 
-        source={require('../assets/images/scan_face_1778924204369.png')} 
-        style={styles.backgroundImage}
-      />
-      
-      {/* Face Mapping Overlay Mock */}
-      <View style={styles.mappingOverlay}>
-        <View style={[styles.dot, { top: '40%', left: '30%' }]} />
-        <View style={[styles.dot, { top: '35%', left: '70%' }]} />
-        <View style={[styles.dot, { top: '65%', left: '45%' }]} />
-        
-        {/* Mock dotted lines (just borders for now or SVG) */}
-        <View style={styles.dottedLineLeft} />
-        <View style={styles.dottedLineRight} />
+      <Image source={require('../assets/images/scan_face_1778924204369.png')} style={styles.backgroundImage} />
+      <View style={styles.overlay}>
+        <View style={[styles.scanDot, { top: '38%', left: '31%' }]} />
+        <View style={[styles.scanDot, { top: '35%', left: '68%' }]} />
+        <View style={[styles.scanDot, { top: '62%', left: '46%' }]} />
       </View>
-
-      {/* Header Controls */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.iconButton}>
-          <Ionicons name="chevron-back" size={24} color="#FFF" />
+        <Pressable style={styles.iconButton} onPress={() => router.back()}>
+          <Icon name="back" color={Colors.white} />
         </Pressable>
-        <Text style={styles.headerTitle}>Scan your face</Text>
-        <Pressable onPress={() => router.back()} style={styles.iconButton}>
-          <Ionicons name="close" size={24} color="#FFF" />
+        <Text style={styles.headerTitle}>Scan product</Text>
+        <Pressable style={styles.iconButton} onPress={() => router.back()}>
+          <Icon name="check" color={Colors.white} />
         </Pressable>
       </View>
-
-      {/* Glassmorphic Bottom Sheet */}
-      <View style={styles.bottomSheetContainer}>
-        <BlurView intensity={80} tint="light" style={styles.bottomSheet}>
-          <Text style={styles.sheetTitle}>Special <Text style={{fontWeight: '700'}}>for you</Text></Text>
-          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productList}>
-            {/* Product 1 */}
-            <View style={styles.productItem}>
-              <View style={[styles.productBox, { backgroundColor: Colors.pastelBlue }]}>
-                <Image source={require('../assets/images/product_serum_1778924224889.png')} style={styles.productImage} />
-              </View>
-              <View style={styles.addBadge}>
-                <Ionicons name="add" size={12} color="#FFF" />
-              </View>
-            </View>
-
-            {/* Product 2 */}
-            <View style={styles.productItem}>
-              <View style={[styles.productBox, { backgroundColor: Colors.pastelPeach }]}>
-                <Image source={require('../assets/images/product_cream_1778924244807.png')} style={styles.productImage} />
-              </View>
-              <View style={styles.addBadge}>
-                <Ionicons name="add" size={12} color="#FFF" />
-              </View>
-            </View>
-
-            {/* Product 3 */}
-            <View style={styles.productItem}>
-              <View style={[styles.productBox, { backgroundColor: Colors.pastelLavender }]}>
-                <Image source={require('../assets/images/product_cleanser_1778924269802.png')} style={styles.productImage} />
-              </View>
-              <View style={styles.addBadge}>
-                <Ionicons name="add" size={12} color="#FFF" />
-              </View>
-            </View>
+      <View style={styles.sheetWrap}>
+        <BlurView intensity={76} tint="light" style={styles.sheet}>
+          <Text style={styles.sheetTitle}>Ingredient check</Text>
+          <Text style={styles.sheetText}>Point your camera at a product label. Rumi will read ingredients and flag routine placement.</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.products}>
+            {products.slice(0, 3).map((product) => (
+              <Pressable key={product.id} style={styles.product} onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } } as any)}>
+                <Image source={product.image} style={styles.productImage} />
+              </Pressable>
+            ))}
           </ScrollView>
-
-          <Pressable style={styles.button}>
-            <Text style={styles.buttonText}>View all products</Text>
+          <Pressable style={styles.button} onPress={() => router.push('/(tabs)/discover')}>
+            <Text style={styles.buttonText}>View compatible products</Text>
           </Pressable>
         </BlurView>
       </View>
@@ -85,134 +45,20 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  mappingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  dot: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FFF',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  dottedLineLeft: {
-    position: 'absolute',
-    top: '35%',
-    left: '20%',
-    width: 100,
-    height: 100,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
-    borderStyle: 'dashed',
-    borderRadius: 50,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  dottedLineRight: {
-    position: 'absolute',
-    top: '30%',
-    right: '20%',
-    width: 120,
-    height: 120,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
-    borderStyle: 'dashed',
-    borderRadius: 60,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#FFF',
-  },
-  bottomSheetContainer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-  },
-  bottomSheet: {
-    borderRadius: 32,
-    padding: 24,
-    overflow: 'hidden',
-  },
-  sheetTitle: {
-    fontSize: 24,
-    color: '#FFF',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  productList: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  productItem: {
-    position: 'relative',
-  },
-  productBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productImage: {
-    width: '70%',
-    height: '70%',
-    resizeMode: 'contain',
-  },
-  addBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.charcoal,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  button: {
-    width: '100%',
-    height: 56,
-    backgroundColor: '#FFF',
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.charcoal,
-  },
+  container: { flex: 1, backgroundColor: Colors.black },
+  backgroundImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', resizeMode: 'cover' },
+  overlay: { ...StyleSheet.absoluteFillObject },
+  scanDot: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.white, borderWidth: 3, borderColor: 'rgba(255,255,255,0.45)' },
+  header: { paddingTop: 64, paddingHorizontal: Spacing.x6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  iconButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(31,27,24,0.28)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: Typography.sans, color: Colors.white, fontSize: 18, fontWeight: '800' },
+  sheetWrap: { position: 'absolute', left: Spacing.x5, right: Spacing.x5, bottom: Spacing.x8 },
+  sheet: { borderRadius: Radius.large, overflow: 'hidden', padding: Spacing.x6 },
+  sheetTitle: { fontFamily: Typography.serif, color: Colors.text, fontSize: 30, fontWeight: '700', textAlign: 'center' },
+  sheetText: { marginTop: Spacing.x3, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  products: { gap: Spacing.x4, marginTop: Spacing.x5, marginBottom: Spacing.x5 },
+  product: { width: 82, height: 82, borderRadius: Radius.medium, backgroundColor: 'rgba(255,255,255,0.74)', alignItems: 'center', justifyContent: 'center' },
+  productImage: { width: '78%', height: '78%', resizeMode: 'contain' },
+  button: { height: 56, borderRadius: Radius.pill, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { fontFamily: Typography.sans, color: Colors.text, fontWeight: '900', fontSize: 15 },
 });

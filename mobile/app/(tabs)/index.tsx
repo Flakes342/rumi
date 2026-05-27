@@ -1,270 +1,189 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Shadows } from '@/constants/Theme';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { AnimatedIn, Card, CircleIcon, Icon, MetricPill, ProductThumb, ScreenContainer, SectionHeader } from '@/components/RumiUI';
+import { Colors, Radius, Shadows, Spacing, Typography } from '@/constants/Theme';
+import { educationCards, products } from '@/constants/RumiData';
+import { useRumiStore } from '@/store/useRumiStore';
 
 export default function HomeScreen() {
+  const { onboardingAnswers, eveningRoutine, morningRoutine } = useRumiStore();
+  const name = String(onboardingAnswers.name || 'Ayush');
+  const hour = new Date().getHours();
+  const isEvening = hour >= 17;
+  const routine = isEvening ? eveningRoutine : morningRoutine;
+  const completed = routine.filter((step) => step.completed).length;
+  const progress = routine.length ? Math.round((completed / routine.length) * 100) : 0;
+  const greetings = [
+    'Your barrier is calmer today',
+    'Hydration is the move today',
+    'A gentle routine fits tonight',
+    'Your skin needs a quiet reset',
+  ];
+  const greetingCopy = greetings[new Date().getDate() % greetings.length];
+  const pollution = String(onboardingAnswers.pollution || 'moderate');
+  const water = String(onboardingAnswers.waterIntake || 'moderate');
+  const cycle = String(onboardingAnswers.hormonalAcne || 'sometimes');
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconBox}>
-            <Ionicons name="heart" size={20} color={Colors.terracotta} />
-          </View>
-          <Text style={styles.points}>• 2648 points</Text>
-          <Image 
-            source={require('../../assets/images/avatar_1778924190238.png')} 
-            style={styles.avatar} 
-          />
-        </View>
-
-        {/* Greeting */}
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greetingTitle}>Hello <Text style={styles.greetingName}>Marta</Text>,</Text>
-          <Text style={styles.greetingSubtitle}>Let's take care of your skin!</Text>
-        </View>
-
-        {/* Daily Routine Card */}
-        <Pressable style={styles.routineCard} onPress={() => router.push('/routine')}>
-          <View style={styles.routineLeft}>
-            <View style={styles.routineIcon}>
-              <Ionicons name="leaf-outline" size={20} color={Colors.charcoal} />
-            </View>
-            <Text style={styles.routineText}>Daily Routine</Text>
-          </View>
-          <View style={styles.routineRight}>
-            <Text style={styles.routinePercentage}>70%</Text>
-            <View style={styles.progressBar}>
-              <View style={styles.progressFill} />
-            </View>
-          </View>
-        </Pressable>
-
-        {/* For You Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>For you</Text>
-          <Pressable onPress={() => router.push('/(tabs)/discover')}>
-            <Text style={styles.viewMore}>View more</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.forYouList}>
-          {/* Main Video Card */}
-          <Pressable style={styles.videoCard} onPress={() => router.push('/(tabs)/discover')}>
-            <Image 
-              source={require('../../assets/images/scan_face_1778924204369.png')} 
-              style={styles.videoImage}
-            />
-            <View style={styles.videoOverlay}>
-              <View style={styles.timeTag}>
-                <Ionicons name="time-outline" size={12} color={Colors.charcoal} />
-                <Text style={styles.timeText}>3 min</Text>
-              </View>
-              <View style={styles.playButton}>
-                <Ionicons name="play" size={16} color={Colors.terracotta} />
-              </View>
-              <View style={styles.titleTag}>
-                <Text style={styles.videoTitle}>5 advices for{"\n"}your skincare{"\n"}routine</Text>
+    <ScreenContainer>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <AnimatedIn>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>{greetingCopy}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{name}</Text>
+                <Icon name="sparkle" size={18} color={Colors.gold} />
               </View>
             </View>
-          </Pressable>
-
-          {/* Secondary Card (Decorative) */}
-          <View style={[styles.videoCard, { width: width * 0.4, opacity: 0.5 }]}>
-            <Image 
-              source={require('../../assets/images/product_serum_1778924224889.png')} 
-              style={styles.videoImage}
-            />
+            <View style={styles.headerActions}>
+              <Pressable style={styles.round} onPress={() => router.push('/settings')}>
+                <Icon name="bell" />
+                <View style={styles.alertDot} />
+              </Pressable>
+            </View>
           </View>
+        </AnimatedIn>
+
+        <AnimatedIn index={1}>
+          <Card style={styles.insight}>
+            <CircleIcon name="sparkle" tone={Colors.pink} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.insightTitle}>Your skin barrier is recovering well.</Text>
+              <Text style={styles.insightText}>Humidity is low tonight. Hydrate and lock in moisture.</Text>
+            </View>
+          </Card>
+        </AnimatedIn>
+
+        <AnimatedIn index={2}>
+          <Card style={styles.statusCard}>
+            <View style={styles.statusTop}>
+              <Text style={styles.cardTitle}>Skin status today</Text>
+            </View>
+            <View style={styles.statusRow}>
+              <MetricPill label="Weather" value={pollution === 'high' ? 'Protect' : 'Stable'} tone={Colors.sage} />
+              <View style={styles.vLine} />
+              <MetricPill label="Water" value={water === 'low' ? 'Low' : 'Good'} tone={Colors.blue} />
+              <View style={styles.vLine} />
+              <MetricPill label="Cycle" value={cycle === 'always' ? 'Reactive' : 'Calm'} tone={Colors.gold} />
+            </View>
+          </Card>
+        </AnimatedIn>
+
+        <AnimatedIn index={3}>
+          <LinearGradient colors={['#E9C8BF', '#F2DCD4']} style={styles.routineCard}>
+            <View style={styles.routineTop}>
+              <CircleIcon name={isEvening ? 'moon' : 'sun'} tone="#D0A79C" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.routineTitle}>{isEvening ? 'Evening routine' : 'Morning routine'}</Text>
+                <Text style={styles.routineMeta}>{routine.length} steps  5 min</Text>
+              </View>
+              <View style={styles.progressBadge}>
+                <Text style={styles.progressBadgeText}>{progress}% completed</Text>
+              </View>
+            </View>
+            <View style={styles.productSequence}>
+              {routine.slice(0, 3).map((step, index) => (
+                <View key={step.id} style={styles.sequenceItem}>
+                  <ProductThumb source={products[index].image} size={68} />
+                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>{index + 1}</Text></View>
+                  <Text style={styles.sequenceText}>{step.category}</Text>
+                </View>
+              ))}
+            </View>
+            <Pressable style={styles.routineCta} onPress={() => router.push('/routine')}>
+              <Text style={styles.routineCtaText}>Start {isEvening ? 'Evening' : 'Morning'} Routine</Text>
+              <Icon name="arrow" />
+            </Pressable>
+          </LinearGradient>
+        </AnimatedIn>
+
+        <SectionHeader title="For you today" action={() => router.push('/(tabs)/discover')} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.educationRow}>
+          {educationCards.map((item, index) => (
+            <Pressable key={item.id} style={styles.educationCard} onPress={() => router.push({ pathname: '/product/[id]', params: { id: products[index].id } } as any)}>
+              <Text style={styles.educationLabel}>{item.label}</Text>
+              <Text style={styles.educationTitle}>{item.title}</Text>
+              <Text style={styles.educationText}>{item.subtitle}</Text>
+              <Image source={item.image} style={styles.educationImage} />
+            </Pressable>
+          ))}
         </ScrollView>
 
+        <Card style={styles.progressCard}>
+          <View>
+            <Text style={styles.cardTitle}>Your progress</Text>
+            <View style={styles.progressContent}>
+              <View style={styles.circleProgress}>
+                <Text style={styles.circleProgressText}>82%</Text>
+              </View>
+              <View>
+                <Text style={styles.progressTitle}>Routine consistency</Text>
+                <Text style={styles.progressText}>You are building a strong habit.</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.month}>
+            <Text style={styles.streakNumber}>12</Text>
+            <Text style={styles.progressText}>Day streak</Text>
+            <View style={styles.chart}>
+              {[22, 28, 26, 34, 42, 54, 48].map((height, index) => (
+                <View key={index} style={[styles.bar, { height, backgroundColor: index === 6 ? '#D58F88' : '#E5DDD7' }]} />
+              ))}
+            </View>
+          </View>
+        </Card>
       </ScrollView>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA', // Very light grey/white background
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 120, // Space for tab bar
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.soft,
-  },
-  points: {
-    fontSize: 14,
-    color: Colors.softGray,
-    fontWeight: '500',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  greetingContainer: {
-    marginBottom: 30,
-  },
-  greetingTitle: {
-    fontSize: 32,
-    color: Colors.charcoal,
-    fontWeight: '400',
-  },
-  greetingName: {
-    fontWeight: '700',
-  },
-  greetingSubtitle: {
-    fontSize: 16,
-    color: Colors.softGray,
-    marginTop: 4,
-  },
-  routineCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 40,
-    ...Shadows.soft,
-  },
-  routineLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  routineIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FAFAFA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F0ECE8',
-  },
-  routineText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.charcoal,
-  },
-  routineRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  routinePercentage: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.softGray,
-  },
-  progressBar: {
-    width: 40,
-    height: 6,
-    backgroundColor: Colors.cloud,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    width: '70%',
-    height: '100%',
-    backgroundColor: '#9A8CFA', // Purple from the design
-    borderRadius: 3,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.charcoal,
-  },
-  viewMore: {
-    fontSize: 14,
-    color: Colors.softGray,
-  },
-  forYouList: {
-    gap: 16,
-  },
-  videoCard: {
-    width: width * 0.65,
-    height: width * 0.85,
-    borderRadius: 32,
-    overflow: 'hidden',
-  },
-  videoImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    padding: 16,
-  },
-  timeTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  timeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.charcoal,
-  },
-  playButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.soft,
-  },
-  titleTag: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 16,
-    ...Shadows.soft,
-  },
-  videoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.charcoal,
-    lineHeight: 20,
-  },
+  scroll: { paddingTop: 54, paddingBottom: 92, gap: Spacing.x4 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  greeting: { fontFamily: Typography.sans, fontSize: 16, color: Colors.secondary, fontWeight: '700' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x2 },
+  name: { marginTop: 2, fontFamily: Typography.sans, fontSize: 28, color: Colors.text, fontWeight: '900' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x3 },
+  round: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', ...Shadows.soft },
+  alertDot: { position: 'absolute', right: 14, top: 13, width: 8, height: 8, borderRadius: 4, backgroundColor: '#D58F88' },
+  insight: { padding: Spacing.x3, flexDirection: 'row', alignItems: 'center', gap: Spacing.x3 },
+  insightTitle: { fontFamily: Typography.sans, color: Colors.text, fontSize: 13, fontWeight: '800' },
+  insightText: { marginTop: 4, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 12, lineHeight: 17 },
+  statusCard: { padding: Spacing.x3, gap: Spacing.x3 },
+  statusTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontFamily: Typography.sans, fontSize: 17, color: Colors.text, fontWeight: '900' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x2 },
+  vLine: { width: 1, height: 34, backgroundColor: Colors.line },
+  routineCard: { borderRadius: Radius.medium, padding: Spacing.x4, gap: Spacing.x4, overflow: 'hidden' },
+  routineTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x3 },
+  routineTitle: { fontFamily: Typography.sans, fontSize: 18, color: Colors.text, fontWeight: '900' },
+  routineMeta: { marginTop: 4, fontFamily: Typography.sans, color: Colors.text, fontSize: 12 },
+  progressBadge: { borderRadius: Radius.pill, backgroundColor: 'rgba(255,255,255,0.28)', paddingHorizontal: Spacing.x4, paddingVertical: Spacing.x2 },
+  progressBadgeText: { fontFamily: Typography.sans, fontSize: 13, color: Colors.text, fontWeight: '700' },
+  productSequence: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sequenceItem: { alignItems: 'center', width: '30%', gap: Spacing.x2 },
+  stepNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
+  stepNumberText: { fontFamily: Typography.sans, fontSize: 12, color: Colors.text, fontWeight: '800' },
+  sequenceText: { fontFamily: Typography.sans, color: Colors.text, fontSize: 12, fontWeight: '700' },
+  routineCta: { height: 46, borderRadius: Radius.pill, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: Spacing.x2 },
+  routineCtaText: { fontFamily: Typography.sans, color: Colors.text, fontSize: 13, fontWeight: '900' },
+  educationRow: { gap: Spacing.x4, paddingRight: Spacing.x6 },
+  educationCard: { width: 172, minHeight: 122, borderRadius: Radius.medium, backgroundColor: Colors.card, padding: Spacing.x3, overflow: 'hidden', ...Shadows.soft },
+  educationLabel: { alignSelf: 'flex-start', borderRadius: Radius.pill, backgroundColor: '#F5E4E0', paddingHorizontal: Spacing.x3, paddingVertical: Spacing.x1, fontFamily: Typography.sans, color: '#B96D63', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  educationTitle: { marginTop: Spacing.x2, width: 104, fontFamily: Typography.sans, color: Colors.text, fontSize: 13, lineHeight: 17, fontWeight: '900' },
+  educationText: { marginTop: Spacing.x2, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 11 },
+  educationImage: { position: 'absolute', right: -8, bottom: -4, width: 74, height: 98, resizeMode: 'contain' },
+  progressCard: { padding: Spacing.x3, flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.x3 },
+  progressContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.x3, marginTop: Spacing.x3 },
+  circleProgress: { width: 56, height: 56, borderRadius: 28, borderWidth: 5, borderColor: '#D58F88', alignItems: 'center', justifyContent: 'center' },
+  circleProgressText: { fontFamily: Typography.sans, fontSize: 18, fontWeight: '900', color: Colors.text },
+  progressTitle: { fontFamily: Typography.sans, fontSize: 13, color: Colors.text, fontWeight: '900' },
+  progressText: { marginTop: 3, fontFamily: Typography.sans, color: Colors.secondary, fontSize: 11, lineHeight: 15 },
+  month: { minWidth: 92, alignItems: 'flex-start' },
+  streakNumber: { fontFamily: Typography.sans, fontSize: 24, color: Colors.text, fontWeight: '900' },
+  chart: { marginTop: Spacing.x3, height: 42, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+  bar: { width: 9, borderRadius: 8 },
 });
